@@ -7,12 +7,19 @@
 </template>
 
 <script setup lang="ts">
+const { init } = useAuth();
+
 useHead({
   htmlAttrs: { lang: "en" },
   meta: [
     { name: "viewport", content: "width=device-width, initial-scale=1" },
     { charset: "utf-8" },
   ],
+});
+
+// Initialize auth on app mount
+onMounted(() => {
+  init();
 });
 </script>
 

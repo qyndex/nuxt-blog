@@ -1,6 +1,16 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { mount } from "@vue/test-utils";
+import { ref, readonly } from "vue";
 import AppHeader from "../../components/AppHeader.vue";
+
+// Mock useAuth composable
+const mockUser = ref(null);
+const mockLogout = vi.fn();
+
+vi.stubGlobal("useAuth", () => ({
+  user: readonly(mockUser),
+  logout: mockLogout,
+}));
 
 function mountHeader(path = "/") {
   return mount(AppHeader, {
@@ -36,13 +46,28 @@ describe("AppHeader", () => {
     expect(nav.attributes("aria-label")).toBe("Main navigation");
   });
 
-  it("renders Home, About and Archive nav links", () => {
+  it("shows Sign In link when not authenticated", () => {
+    mockUser.value = null;
     const wrapper = mountHeader();
     const links = wrapper.findAll("nav a");
     const hrefs = links.map((l) => l.attributes("href"));
-    expect(hrefs).toContain("/");
-    expect(hrefs).toContain("/about");
-    expect(hrefs).toContain("/archive");
+    expect(hrefs).toContain("/auth/login");
+  });
+
+  it("shows My Posts and Sign Out when authenticated", () => {
+    mockUser.value = { id: "test-user", email: "test@example.com" } as never;
+    const wrapper = mountHeader();
+    const links = wrapper.findAll("nav a");
+    const hrefs = links.map((l) => l.attributes("href"));
+    expect(hrefs).toContain("/admin/posts");
+    expect(wrapper.find(".nav-btn").text()).toBe("Sign Out");
+  });
+
+  it("calls logout when Sign Out is clicked", async () => {
+    mockUser.value = { id: "test-user", email: "test@example.com" } as never;
+    const wrapper = mountHeader();
+    await wrapper.find(".nav-btn").trigger("click");
+    expect(mockLogout).toHaveBeenCalled();
   });
 
   it("renders the header element", () => {

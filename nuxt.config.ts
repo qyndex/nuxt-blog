@@ -4,10 +4,20 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: ["@nuxt/eslint"],
   typescript: { strict: true },
+
   runtimeConfig: {
+    // Server-only (not exposed to client)
+    supabaseUrl: process.env.SUPABASE_URL || "",
+    supabaseKey: process.env.SUPABASE_KEY || "",
+    supabaseServiceKey: process.env.SUPABASE_SERVICE_KEY || "",
+
+    // Client-accessible
     public: {
       siteName: "The Dev Blog",
-      siteDescription: "Insights on web development, TypeScript, and architecture.",
+      siteDescription:
+        "Insights on web development, TypeScript, and architecture.",
+      supabaseUrl: process.env.SUPABASE_URL || "",
+      supabaseKey: process.env.SUPABASE_KEY || "",
     },
   },
 });

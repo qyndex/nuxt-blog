@@ -1,21 +1,38 @@
 import { describe, it, expect } from "vitest";
 import { mount } from "@vue/test-utils";
 import ArticleCard from "../../components/ArticleCard.vue";
-import type { Post } from "../../server/api/posts.get";
+import type { PostWithRelations } from "../../types/database";
 
-const stubPost: Post = {
+const stubPost: PostWithRelations = {
+  id: "test-id",
   slug: "test-post",
   title: "Test Post Title",
   excerpt: "A short excerpt about the test post.",
   content: "<p>Full content here.</p>",
-  author: "Jane Doe",
-  date: "2026-01-20",
-  category: "typescript",
-  cover: "https://placehold.co/640x360?text=Test",
-  readTime: 4,
+  cover_image_url: "https://placehold.co/640x360?text=Test",
+  category_id: "cat-1",
+  author_id: "author-1",
+  published: true,
+  published_at: "2026-01-20T10:00:00Z",
+  created_at: "2026-01-20T10:00:00Z",
+  updated_at: "2026-01-20T10:00:00Z",
+  categories: {
+    id: "cat-1",
+    name: "TypeScript",
+    slug: "typescript",
+    created_at: "2026-01-01T00:00:00Z",
+  },
+  profiles: {
+    id: "author-1",
+    username: "janedoe",
+    full_name: "Jane Doe",
+    avatar_url: null,
+    bio: null,
+    created_at: "2026-01-01T00:00:00Z",
+  },
 };
 
-function mountCard(post: Post = stubPost) {
+function mountCard(post: PostWithRelations = stubPost) {
   return mount(ArticleCard, {
     props: { post },
     global: {
@@ -35,19 +52,14 @@ describe("ArticleCard", () => {
     expect(wrapper.find(".excerpt").text()).toBe(stubPost.excerpt);
   });
 
-  it("renders author name", () => {
+  it("renders author full_name from profile", () => {
     const wrapper = mountCard();
-    expect(wrapper.text()).toContain(stubPost.author);
+    expect(wrapper.text()).toContain("Jane Doe");
   });
 
-  it("renders category badge", () => {
+  it("renders category name from relation", () => {
     const wrapper = mountCard();
-    expect(wrapper.find(".category").text()).toBe(stubPost.category);
-  });
-
-  it("renders read-time", () => {
-    const wrapper = mountCard();
-    expect(wrapper.text()).toContain(`${stubPost.readTime} min read`);
+    expect(wrapper.find(".category").text()).toBe("TypeScript");
   });
 
   it("link href points to the post slug", () => {
@@ -65,12 +77,25 @@ describe("ArticleCard", () => {
   it("image has correct src and alt attributes", () => {
     const wrapper = mountCard();
     const img = wrapper.find("img");
-    expect(img.attributes("src")).toBe(stubPost.cover);
+    expect(img.attributes("src")).toBe(stubPost.cover_image_url);
     expect(img.attributes("alt")).toBe(stubPost.title);
   });
 
   it("image uses lazy loading", () => {
     const wrapper = mountCard();
     expect(wrapper.find("img").attributes("loading")).toBe("lazy");
+  });
+
+  it("shows placeholder when no cover_image_url", () => {
+    const postNoCover = { ...stubPost, cover_image_url: null };
+    const wrapper = mountCard(postNoCover);
+    expect(wrapper.find(".cover-placeholder").exists()).toBe(true);
+    expect(wrapper.find("img").exists()).toBe(false);
+  });
+
+  it("renders formatted date from published_at", () => {
+    const wrapper = mountCard();
+    // "Jan 20" format (short month + day)
+    expect(wrapper.text()).toContain("Jan");
   });
 });

@@ -1,51 +1,71 @@
-export interface Post {
-  slug: string;
-  title: string;
-  excerpt: string;
-  content: string;
-  author: string;
-  date: string;
-  category: string;
-  cover: string;
-  readTime: number;
-}
+import type { PostWithRelations } from "~/types/database";
 
-const POSTS: Post[] = [
-  {
-    slug: "building-with-nuxt3",
-    title: "Building Modern Apps with Nuxt 3",
-    excerpt: "A deep dive into Nuxt 3's file-based routing, server-side rendering, and the Composition API.",
-    content: "<p>Nuxt 3 brings a significantly improved developer experience...</p><p>With auto-imports, server routes, and Nitro engine, you can build full-stack apps in record time.</p>",
-    author: "Alex Rivera",
-    date: "2026-01-15",
-    category: "framework",
-    cover: "https://placehold.co/640x360?text=Nuxt+3",
-    readTime: 6,
-  },
-  {
-    slug: "typescript-composables",
-    title: "Writing Type-Safe Composables in Vue 3",
-    excerpt: "How to leverage TypeScript generics and the Composition API to write reusable, fully typed composables.",
-    content: "<p>Composables are the Vue 3 answer to React hooks...</p><p>TypeScript makes them even more powerful with proper inference and constraint checking.</p>",
-    author: "Maria Chen",
-    date: "2026-02-10",
-    category: "typescript",
-    cover: "https://placehold.co/640x360?text=TypeScript",
-    readTime: 8,
-  },
-  {
-    slug: "server-routes-api",
-    title: "Server Routes and API Design in Nuxt 3",
-    excerpt: "Using Nitro server routes to build a RESTful API alongside your Nuxt 3 frontend.",
-    content: "<p>Nuxt 3's server directory lets you define API endpoints that run on the Nitro engine...</p>",
-    author: "Sam Kowalski",
-    date: "2026-03-01",
-    category: "backend",
-    cover: "https://placehold.co/640x360?text=Server+Routes",
-    readTime: 5,
-  },
-];
+/**
+ * GET /api/posts
+ * List published posts with optional category filtering and pagination.
+ *
+ * Query params:
+ *   ?category=<slug>    — filter by category slug
+ *   ?page=<number>      — page number (default 1)
+ *   ?per_page=<number>  — items per page (default 12)
+ *   ?search=<string>    — search title/excerpt
+ */
+export default defineEventHandler(async (event) => {
+  const query = getQuery(event);
+  const page = Math.max(1, Number(query.page) || 1);
+  const perPage = Math.min(50, Math.max(1, Number(query.per_page) || 12));
+  const categorySlug = (query.category as string) || null;
+  const search = (query.search as string) || null;
 
-export default defineEventHandler((event) => {
-  return POSTS;
+  const supabase = useSupabaseServer();
+
+  // Build the query for published posts with relations
+  let dbQuery = supabase
+    .from("posts")
+    .select("*, categories(*), profiles(*)", { count: "exact" })
+    .eq("published", true)
+    .order("published_at", { ascending: false });
+
+  // Apply category filter
+  if (categorySlug) {
+    // Look up category id by slug
+    const { data: cat } = await supabase
+      .from("categories")
+      .select("id")
+      .eq("slug", categorySlug)
+      .single();
+
+    if (cat) {
+      dbQuery = dbQuery.eq("category_id", cat.id);
+    } else {
+      // Unknown category — return empty result
+      return { posts: [], total: 0, page, per_page: perPage };
+    }
+  }
+
+  // Apply search filter
+  if (search) {
+    dbQuery = dbQuery.or(`title.ilike.%${search}%,excerpt.ilike.%${search}%`);
+  }
+
+  // Apply pagination
+  const from = (page - 1) * perPage;
+  const to = from + perPage - 1;
+  dbQuery = dbQuery.range(from, to);
+
+  const { data, count, error } = await dbQuery;
+
+  if (error) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: "Failed to fetch posts",
+    });
+  }
+
+  return {
+    posts: (data ?? []) as PostWithRelations[],
+    total: count ?? 0,
+    page,
+    per_page: perPage,
+  };
 });

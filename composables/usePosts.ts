@@ -1,12 +1,16 @@
-import type { Post } from "~/server/api/posts.get";
+import type { PostWithRelations, Category } from "~/types/database";
 
 export function usePosts() {
-  const { data: posts, pending, error, refresh } = useLazyFetch<Post[]>("/api/posts");
+  const { data: postData, pending, error, refresh } = useLazyFetch<{
+    posts: PostWithRelations[];
+    total: number;
+  }>("/api/posts");
 
-  const latestPosts = computed(() => (posts.value ?? []).slice(0, 3));
-  const categories = computed(() => [
-    ...new Set((posts.value ?? []).map((p) => p.category)),
-  ]);
+  const posts = computed(() => postData.value?.posts ?? []);
+  const latestPosts = computed(() => posts.value.slice(0, 3));
+
+  const { data: catData } = useLazyFetch<{ categories: Category[] }>("/api/categories");
+  const categories = computed(() => catData.value?.categories ?? []);
 
   return { posts, latestPosts, categories, pending, error, refresh };
 }
