@@ -1,12 +1,13 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
-RUN npm install --legacy-peer-deps
+RUN npm install --legacy-peer-deps --ignore-scripts
 
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+RUN npx nuxt prepare
 # Build-time env vars for nuxt build (SSR renders need these)
 ARG SUPABASE_URL
 ARG SUPABASE_KEY
