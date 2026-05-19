@@ -18,6 +18,10 @@ RUN npm run build
 FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+# Nitro node-server preset requires HOST=0.0.0.0 to bind on all interfaces
+# and NITRO_PORT to specify the port (default 3000).
+ENV HOST=0.0.0.0
+ENV NITRO_PORT=3000
 COPY --from=builder /app/.output ./
 EXPOSE 3000
 CMD ["node", "server/index.mjs"]

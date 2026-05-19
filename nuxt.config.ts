@@ -1,9 +1,15 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: "2024-11-01",
-  devtools: { enabled: true },
+  devtools: { enabled: false },
   modules: ["@nuxt/eslint"],
   typescript: { strict: true },
+
+  // Nitro: node-server preset is required for Docker/Coolify deployments.
+  // Without this, Nuxt defaults to a preset that may not bind to 0.0.0.0.
+  nitro: {
+    preset: "node-server",
+  },
 
   runtimeConfig: {
     // Server-only (not exposed to client)
