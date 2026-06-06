@@ -130,7 +130,7 @@ create policy "Users can delete own comments"
 create or replace function handle_new_user()
 returns trigger as $$
 begin
-  insert into profiles (id, username, full_name, avatar_url)
+  insert into public.profiles (id, username, full_name, avatar_url)
   values (
     new.id,
     new.raw_user_meta_data->>'username',
@@ -139,7 +139,7 @@ begin
   );
   return new;
 end;
-$$ language plpgsql security definer;
+$$ language plpgsql security definer set search_path = public;
 
 create or replace trigger on_auth_user_created
   after insert on auth.users

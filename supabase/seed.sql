@@ -6,6 +6,13 @@
 -- or `supabase auth signup`, then seed profiles here.
 
 -- Two author profiles (UUIDs match test users created in Supabase dashboard)
+-- Seed auth.users first (profiles.id FKs to auth.users); the handle_new_user
+-- trigger then creates base profiles, which the INSERT below enriches.
+insert into auth.users (id, email, encrypted_password, email_confirmed_at, raw_user_meta_data, created_at, updated_at, instance_id, aud, role) values
+  ('d0e1f2a3-b4c5-6d7e-8f9a-0b1c2d3e4f5a','alexrivera@example.com',crypt('password123',gen_salt('bf')),now(),'{"username":"alexrivera","full_name":"Alex Rivera","avatar_url":"https://api.dicebear.com/7.x/avataaars/svg?seed=alex"}'::jsonb,now(),now(),'00000000-0000-0000-0000-000000000000','authenticated','authenticated'),
+  ('a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d','mariachen@example.com',crypt('password123',gen_salt('bf')),now(),'{"username":"mariachen","full_name":"Maria Chen","avatar_url":"https://api.dicebear.com/7.x/avataaars/svg?seed=maria"}'::jsonb,now(),now(),'00000000-0000-0000-0000-000000000000','authenticated','authenticated')
+on conflict (id) do update set username=excluded.username, full_name=excluded.full_name, avatar_url=excluded.avatar_url, bio=excluded.bio;
+
 insert into profiles (id, username, full_name, avatar_url, bio) values
   ('d0e1f2a3-b4c5-6d7e-8f9a-0b1c2d3e4f5a', 'alexrivera', 'Alex Rivera', 'https://api.dicebear.com/7.x/avataaars/svg?seed=alex', 'Full-stack developer, Nuxt enthusiast, and open-source contributor.'),
   ('a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d', 'mariachen', 'Maria Chen', 'https://api.dicebear.com/7.x/avataaars/svg?seed=maria', 'TypeScript advocate and Vue.js core team member.')
